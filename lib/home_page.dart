@@ -139,7 +139,7 @@ class _CategoryAndBanner extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.xl,
-        vertical: AppSpacing.xxxl,
+        vertical: AppSpacing.xxl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

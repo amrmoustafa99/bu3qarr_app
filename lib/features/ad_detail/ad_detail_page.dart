@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../core/models.dart';
 import '../../shared/theme/app_theme.dart';
@@ -15,43 +15,11 @@ class AdDetailPage extends StatefulWidget {
   State<AdDetailPage> createState() => _AdDetailPageState();
 }
 
-class _AdDetailPageState extends State<AdDetailPage>
-    with SingleTickerProviderStateMixin {
-  final PageController _pageCtrl = PageController();
-  int _currentImage = 0;
+class _AdDetailPageState extends State<AdDetailPage> {
   bool _descExpanded = false;
 
-  late AnimationController _contentCtrl;
-  late Animation<double> _contentFade;
-  late Animation<Offset> _contentSlide;
-
-  @override
-  void initState() {
-    super.initState();
-    _contentCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _contentFade = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _contentCtrl, curve: Curves.easeOut));
-    _contentSlide =
-        Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero).animate(
-          CurvedAnimation(parent: _contentCtrl, curve: Curves.easeOutCubic),
-        );
-
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) _contentCtrl.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _pageCtrl.dispose();
-    _contentCtrl.dispose();
-    super.dispose();
-  }
+  final DraggableScrollableController _sheetCtrl =
+      DraggableScrollableController();
 
   List<PropertyModel> get _similar => sampleProperties
       .where(
@@ -63,54 +31,209 @@ class _AdDetailPageState extends State<AdDetailPage>
       .toList();
 
   @override
+  void dispose() {
+    _sheetCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final p = widget.property;
+    final screenH = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Stack(
         children: [
-          // ── Main content ──
-          CustomScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
+          // ───────────────── Background Image ─────────────────
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _sheetCtrl,
+              builder: (context, child) {
+                double size = 0.60;
+
+                if (_sheetCtrl.isAttached) {
+                  size = _sheetCtrl.size;
+                }
+
+                final imageHeight = screenH * (1 - (size - 0.15));
+
+                return Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    height: imageHeight.clamp(screenH * 0.42, screenH * 0.75),
+                    width: double.infinity,
+                    child: _SingleImage(property: p, imageH: imageHeight),
+                  ),
+                );
+              },
             ),
-            slivers: [
-              // ── Sliver image header ──
-              SliverAppBar(
-                expandedHeight: 300,
-                pinned: true,
-                backgroundColor: AppColors.black,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                leading: const SizedBox.shrink(),
-                flexibleSpace: _ImageHeader(
-                  property: p,
-                  pageCtrl: _pageCtrl,
-                  currentImage: _currentImage,
-                  onPageChanged: (i) => setState(() => _currentImage = i),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: FadeTransition(
-                  opacity: _contentFade,
-                  child: SlideTransition(
-                    position: _contentSlide,
-                    child: _ContentBody(
-                      property: p,
-                      descExpanded: _descExpanded,
-                      onToggleDesc: () =>
-                          setState(() => _descExpanded = !_descExpanded),
-                      similar: _similar,
+          ),
+
+          // ───────────────── Draggable Sheet ─────────────────
+          DraggableScrollableSheet(
+            controller: _sheetCtrl,
+            initialChildSize: 0.60,
+            minChildSize: 0.60,
+            maxChildSize: 0.96,
+            snap: true,
+            snapSizes: const [0.60, 0.96],
+            builder: (ctx, scrollCtrl) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(34),
+                    topRight: Radius.circular(34),
+                  ),
+
+                  // ✨ Shadow
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.32),
+                      blurRadius: 65,
+                      spreadRadius: 8,
+                      offset: const Offset(0, -18),
                     ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(34),
+                    topRight: Radius.circular(34),
+                  ),
+                  child: CustomScrollView(
+                    controller: scrollCtrl,
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Column(
+                          children: [
+                            // Drag Handle
+                            Center(
+                              child: Container(
+                                margin: const EdgeInsets.only(
+                                  top: AppSpacing.md,
+                                  bottom: AppSpacing.md,
+                                ),
+                                width: 44,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  //  color: const Color(0xFFD9D9D9),
+                                  borderRadius: BorderRadius.circular(100),
+
+                                  color: Colors.grey.shade300,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.08),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // Main Info
+                            _MainInfo(property: p),
+
+                            const SizedBox(height: AppSpacing.xl),
+                            const SubtleDivider(),
+                            const SizedBox(height: AppSpacing.xl),
+
+                            // Spec Chips
+                            _SpecChips(property: p),
+
+                            const SizedBox(height: AppSpacing.xl),
+                            const SubtleDivider(),
+                          ],
+                        ),
+                      ),
+
+                      // Description
+                      if (p.description != null)
+                        SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: AppSpacing.xl),
+                              _DescriptionSection(
+                                description: p.description!,
+                                expanded: _descExpanded,
+                                onToggle: () => setState(
+                                  () => _descExpanded = !_descExpanded,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xl),
+                              const SubtleDivider(),
+                            ],
+                          ),
+                        ),
+
+                      // Ad Code
+                      if (p.adCode != null)
+                        SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: AppSpacing.xl),
+                              Center(
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      ' رمز الإعلان  |  ${p.adCode!} ',
+                                      style: AppTextStyles.titleMedium.copyWith(
+                                        color: AppColors.mediumGray,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xl),
+                              const SubtleDivider(),
+                            ],
+                          ),
+                        ),
+
+                      // Agency
+                      if (p.agency != null)
+                        SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: AppSpacing.xl),
+                              _AgencySection(agency: p.agency!),
+                              const SizedBox(height: AppSpacing.xl),
+                              const SubtleDivider(),
+                            ],
+                          ),
+                        ),
+
+                      // Similar
+                      if (_similar.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: AppSpacing.xl),
+                              _SimilarSection(similar: _similar),
+                              const SizedBox(height: AppSpacing.xl),
+                            ],
+                          ),
+                        ),
+
+                      const SliverToBoxAdapter(child: SizedBox(height: 110)),
+                    ],
                   ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
-          // ── Floating back + share buttons ──
+
+          // Floating buttons
           _FloatingTopBar(),
-          // ── Sticky bottom action bar ──
+
+          // Bottom Bar
           Positioned(
             bottom: 0,
             left: 0,
@@ -124,98 +247,50 @@ class _AdDetailPageState extends State<AdDetailPage>
 }
 
 // ─────────────────────────────────────────────
-// Image Header (SliverAppBar flexible space)
+// Single Image
 // ─────────────────────────────────────────────
-class _ImageHeader extends StatelessWidget {
+class _SingleImage extends StatelessWidget {
   final PropertyModel property;
-  final PageController pageCtrl;
-  final int currentImage;
-  final ValueChanged<int> onPageChanged;
+  final double imageH;
 
-  const _ImageHeader({
-    required this.property,
-    required this.pageCtrl,
-    required this.currentImage,
-    required this.onPageChanged,
-  });
+  const _SingleImage({required this.property, required this.imageH});
 
   @override
   Widget build(BuildContext context) {
-    return FlexibleSpaceBar(
-      collapseMode: CollapseMode.parallax,
-      background: Stack(
+    return SizedBox(
+      height: imageH,
+      width: double.infinity,
+      child: Stack(
         fit: StackFit.expand,
         children: [
-          // Images
           Hero(
             tag: 'property_image_${property.id}',
-            child: PageView.builder(
-              controller: pageCtrl,
-              onPageChanged: onPageChanged,
-              itemCount: property.images.length,
-              itemBuilder: (_, i) => PropertyImage(
-                url: property.images[i],
-                width: double.infinity,
-                height: double.infinity,
-              ),
+            child: PropertyImage(
+              url: property.images.first,
+              width: double.infinity,
+              height: imageH,
+              fit: BoxFit.cover,
             ),
           ),
-          // Gradient overlay at bottom
+
+          // Gradient
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              height: 100,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    AppColors.black.withOpacity(0.5),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Page indicator
-          if (property.images.length > 1)
-            Positioned(
-              bottom: 20,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: SmoothPageIndicator(
-                  controller: pageCtrl,
-                  count: property.images.length,
-                  effect: ExpandingDotsEffect(
-                    activeDotColor: AppColors.white,
-                    dotColor: AppColors.white.withOpacity(0.45),
-                    dotHeight: 6,
-                    dotWidth: 6,
-                    expansionFactor: 2.5,
-                    spacing: 5,
+            height: 140,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.35),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
-              ),
-            ),
-          // Image counter
-          Positioned(
-            bottom: 14,
-            right: AppSpacing.xl,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: 5,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.black.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(AppRadius.full),
-              ),
-              child: Text(
-                '${currentImage + 1}/${property.images.length}',
-                style: AppTextStyles.caption.copyWith(color: AppColors.white),
               ),
             ),
           ),
@@ -226,7 +301,7 @@ class _ImageHeader extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// Floating top bar (back + share)
+// Floating Top Bar
 // ─────────────────────────────────────────────
 class _FloatingTopBar extends StatelessWidget {
   @override
@@ -260,146 +335,27 @@ class _GlassButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
-          color: AppColors.white.withOpacity(0.9),
+          color: AppColors.white.withOpacity(0.92),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppColors.black.withOpacity(0.12),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: AppColors.black.withOpacity(0.14),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Icon(icon, size: 16, color: AppColors.black),
+        child: Icon(icon, size: 17, color: AppColors.black),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────
-// Content body
-// ─────────────────────────────────────────────
-class _ContentBody extends StatelessWidget {
-  final PropertyModel property;
-  final bool descExpanded;
-  final VoidCallback onToggleDesc;
-  final List<PropertyModel> similar;
-
-  const _ContentBody({
-    required this.property,
-    required this.descExpanded,
-    required this.onToggleDesc,
-    required this.similar,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.translate(
-      offset: const Offset(0, -40),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(40),
-            topRight: Radius.circular(40),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Drag handle ──
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: AppSpacing.md),
-                width: 42,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD9D9D9),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: AppSpacing.md),
-
-            // ── Main info ──
-            _MainInfo(property: property),
-
-            const SizedBox(height: AppSpacing.xl),
-            const SubtleDivider(),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            // ── Spec chips ──
-            _SpecChips(property: property),
-
-            const SizedBox(height: AppSpacing.xl),
-            const SubtleDivider(),
-
-            // ── Description ──
-            if (property.description != null) ...[
-              const SizedBox(height: AppSpacing.xl),
-
-              _DescriptionSection(
-                description: property.description!,
-                expanded: descExpanded,
-                onToggle: onToggleDesc,
-              ),
-
-              const SizedBox(height: AppSpacing.xl),
-              const SubtleDivider(),
-            ],
-
-            // ── Ad code only ──
-            if (property.adCode != null) ...[
-              const SizedBox(height: AppSpacing.xl),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: DetailRow(
-                  label: 'رمز الإعلان',
-                  value: property.adCode!,
-                  icon: Icons.tag_outlined,
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xl),
-              const SubtleDivider(),
-            ],
-
-            // ── Agency section ──
-            if (property.agency != null) ...[
-              const SizedBox(height: AppSpacing.xl),
-
-              _AgencySection(agency: property.agency!),
-
-              const SizedBox(height: AppSpacing.xl),
-              const SubtleDivider(),
-            ],
-
-            // ── Similar properties ──
-            if (similar.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xl),
-
-              _SimilarSection(similar: similar),
-
-              const SizedBox(height: AppSpacing.xl),
-            ],
-
-            // Space for bottom bar
-            const SizedBox(height: 100),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-// Main info: title, price, location, time
+// Main Info
 // ─────────────────────────────────────────────
 class _MainInfo extends StatelessWidget {
   final PropertyModel property;
@@ -413,9 +369,8 @@ class _MainInfo extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Category badge
-          const SizedBox(height: AppSpacing.xl),
-          // Location (right) + time (left) in same row
+          const SizedBox(height: AppSpacing.md),
+
           Row(
             children: [
               Icon(
@@ -424,22 +379,29 @@ class _MainInfo extends StatelessWidget {
                 color: AppColors.mediumGray,
               ),
               const SizedBox(width: 3),
+
               Text(property.location, style: AppTextStyles.bodyMedium),
+
               const Spacer(),
+
               Text(property.timeAgo, style: AppTextStyles.bodySmall),
             ],
           ),
+
           const SizedBox(height: AppSpacing.sm),
-          // Title below
+
           Text(property.title, style: AppTextStyles.displayMedium),
+
           const SizedBox(height: AppSpacing.lg),
-          // Price
+
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(property.price, style: AppTextStyles.priceLarge),
+
               if (property.priceUnit.isNotEmpty) ...[
                 const SizedBox(width: AppSpacing.xs),
+
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
@@ -459,7 +421,7 @@ class _MainInfo extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// Spec chips row
+// Spec chips
 // ─────────────────────────────────────────────
 class _SpecChips extends StatelessWidget {
   final PropertyModel property;
@@ -553,70 +515,6 @@ class _DescriptionSection extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// Property details section
-// ─────────────────────────────────────────────
-class _DetailsSection extends StatelessWidget {
-  final PropertyModel property;
-
-  const _DetailsSection({required this.property});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('تفاصيل العقار', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          DetailRow(
-            label: 'نوع العقار',
-            value: property.propertyType,
-            icon: Icons.home_outlined,
-          ),
-          const SubtleDivider(indent: 0),
-          DetailRow(
-            label: 'المساحة',
-            value: '${property.area} م²',
-            icon: Icons.straighten_outlined,
-          ),
-          const SubtleDivider(indent: 0),
-          DetailRow(
-            label: 'التصنيف',
-            value: property.category,
-            icon: Icons.category_outlined,
-          ),
-          if (property.details != null) ...[
-            const SubtleDivider(indent: 0),
-            DetailRow(
-              label: 'تفاصيل إضافية',
-              value: property.details!,
-              icon: Icons.info_outline,
-            ),
-          ],
-          if (property.adCode != null) ...[
-            const SubtleDivider(indent: 0),
-            DetailRow(
-              label: 'رمز الإعلان',
-              value: property.adCode!,
-              icon: Icons.tag_outlined,
-            ),
-          ],
-          if (property.isPersonal) ...[
-            const SubtleDivider(indent: 0),
-            DetailRow(
-              label: 'نوع المُعلِن',
-              value: 'إعلان شخصي',
-              icon: Icons.person_outline,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
 // Agency section
 // ─────────────────────────────────────────────
 class _AgencySection extends StatelessWidget {
@@ -652,17 +550,27 @@ class _AgencySection extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Logo
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  child: PropertyImage(
-                    url: agency.logoUrl,
-                    width: 56,
-                    height: 56,
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.business_rounded,
+                    color: Colors.white,
+                    size: 28,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.base),
-                // Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -730,7 +638,6 @@ class _AgencySection extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Chevron
                 const Icon(
                   Icons.arrow_back_ios_new_rounded,
                   size: 14,
@@ -826,17 +733,15 @@ class _BottomActionBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // WhatsApp button - filled
           Expanded(
             child: _ActionButton(
               label: 'واتساب',
-              icon: Icons.chat_rounded,
+              icon: FontAwesomeIcons.whatsapp,
               filled: true,
               onTap: () {},
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          // Call button - outlined
           Expanded(
             child: _ActionButton(
               label: 'اتصال',
