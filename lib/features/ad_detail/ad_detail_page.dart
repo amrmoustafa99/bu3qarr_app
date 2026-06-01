@@ -117,12 +117,8 @@ class _AdDetailPageState extends State<AdDetailPage> {
                             // Drag Handle
                             Center(
                               child: Container(
-                                margin: const EdgeInsets.only(
-                                  top: 10,
-                                  bottom: 8,
-                                ),
+                                margin: const EdgeInsets.only(bottom: 28),
                                 width: 44,
-                                height: 5,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(100),
                                   color: Colors.grey.shade300,
@@ -140,9 +136,8 @@ class _AdDetailPageState extends State<AdDetailPage> {
                             // Main Info
                             _MainInfo(property: p),
 
-                            const SizedBox(height: AppSpacing.md),
+                            const SizedBox(height: 24),
                             const SubtleDivider(),
-                            const SizedBox(height: AppSpacing.md),
                           ],
                         ),
                       ),
@@ -152,7 +147,7 @@ class _AdDetailPageState extends State<AdDetailPage> {
                         SliverToBoxAdapter(
                           child: Column(
                             children: [
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: 24),
                               _DescriptionSection(
                                 description: p.description!,
                                 expanded: _descExpanded,
@@ -162,7 +157,7 @@ class _AdDetailPageState extends State<AdDetailPage> {
                               ),
                               const SizedBox(height: AppSpacing.lg),
                               _SpecList(property: p),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               const SubtleDivider(),
                             ],
                           ),
@@ -173,9 +168,9 @@ class _AdDetailPageState extends State<AdDetailPage> {
                         SliverToBoxAdapter(
                           child: Column(
                             children: [
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               _AdCodeSection(adCode: p.adCode!),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               const SubtleDivider(),
                             ],
                           ),
@@ -186,9 +181,9 @@ class _AdDetailPageState extends State<AdDetailPage> {
                         SliverToBoxAdapter(
                           child: Column(
                             children: [
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: 28),
                               _AgencySection(agency: p.agency!),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: 24),
                               const SubtleDivider(),
                             ],
                           ),
@@ -199,7 +194,7 @@ class _AdDetailPageState extends State<AdDetailPage> {
                         SliverToBoxAdapter(
                           child: Column(
                             children: [
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: 28),
                               _SimilarSection(similar: _similar),
                               const SizedBox(height: AppSpacing.md),
                             ],
@@ -222,7 +217,6 @@ class _AdDetailPageState extends State<AdDetailPage> {
             builder: (context, child) {
               final size = _sheetCtrl.isAttached ? _sheetCtrl.size : 0.60;
 
-              // مكان الـ indicator فوق الـ sheet
               final bottomPos = (screenH * size) + 18;
 
               return Positioned(
@@ -232,7 +226,6 @@ class _AdDetailPageState extends State<AdDetailPage> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // ───────────────── Dots بالنص ─────────────────
                     Center(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -255,7 +248,6 @@ class _AdDetailPageState extends State<AdDetailPage> {
                       ),
                     ),
 
-                    // ───────────────── Counter شمال ─────────────────
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Container(
@@ -343,8 +335,6 @@ class _ImageSliderState extends State<_ImageSlider> {
               itemCount: images.length,
               onPageChanged: (index) {
                 setState(() => _currentPage = index);
-
-                // مهم جدًا
                 widget.onPageChanged(index);
               },
               itemBuilder: (_, index) {
@@ -504,14 +494,14 @@ class _MainInfo extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.lg),
 
           Text(
             property.title,
             style: AppTextStyles.displayMedium.copyWith(color: _kTextBlack),
           ),
 
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
 
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -690,7 +680,7 @@ class _AdCodeSection extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFF737373),
+          color: const Color(0xFFADADAD),
           borderRadius: BorderRadius.circular(100),
         ),
         child: Text(
@@ -953,7 +943,7 @@ class _IconActionButton extends StatelessWidget {
         height: 52,
         decoration: BoxDecoration(
           color: filled ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(100),
           border: Border.all(color: AppColors.primary, width: 1.2),
         ),
         child: Center(
