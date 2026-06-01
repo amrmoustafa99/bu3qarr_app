@@ -683,7 +683,7 @@ class _AdCodeSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(100),
         ),
         child: Text(
-          '$adCode | رمز الإعلان',
+          ' رمز الإعلان  |  $adCode',
           style: AppTextStyles.labelSmall.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w600,
