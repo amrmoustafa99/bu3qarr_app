@@ -209,7 +209,6 @@ class _AdDetailPageState extends State<AdDetailPage> {
             },
           ),
 
-          // ───────────────── Floating Top Bar ─────────────────
           _FloatingTopBar(),
           // ───────────────── Bottom Dots + Counter Indicator ─────────────────
           AnimatedBuilder(
